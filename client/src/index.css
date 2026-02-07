@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-green: #2d5a27;
+  --secondary-orange: #f39200;
+  --accent-light: #fdf8e1;
+  --text-dark: #1a1a1a;
+  --text-light: #ffffff;
+  --bg-gradient: linear-gradient(135deg, #fdf8e1 0%, #ffffff 100%);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-dark);
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Custom UI Components that Tailwind doesn't handle natively as well */
+.premium-card {
+  @apply bg-white/80 backdrop-blur-md border border-white/20 rounded-[20px] shadow-lg transition-all duration-300;
+}
+
+.btn-primary {
+  @apply bg-primary-green text-white px-6 py-3 rounded-full font-semibold inline-flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary-green/20;
+}
+
+.whatsapp-btn {
+  @apply bg-[#25D366] text-white flex items-center gap-3 px-8 py-4 rounded-full font-bold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-[#25D366]/30;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--accent-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-green);
+  border-radius: 10px;
+}
