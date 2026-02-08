@@ -330,7 +330,7 @@ function App() {
                         <div className="relative group p-4 md:p-8">
                             <div className="absolute inset-0 bg-white/5 rounded-[40px] md:rounded-[80px] rotate-3 scale-95 group-hover:rotate-0 transition-transform duration-700 blur-sm" />
                             <img
-                                src="https://images.unsplash.com/photo-1630409351241-e90e7f5e434d?auto=format&fit=crop&q=80&w=1200"
+                                src="https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&q=80&w=1200"
                                 className="relative w-full aspect-square object-cover shadow-2xl rounded-[30px] md:rounded-[60px] ring-8 ring-white/5"
                                 alt="Authentic South Indian Breakfast"
                             />
