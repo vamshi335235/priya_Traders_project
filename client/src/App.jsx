@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ShoppingCart, Leaf, Clock, MapPin, Trash2, ArrowRight, Plus, Minus, CheckCircle2, Phone, Instagram, Facebook, Mail, MessageCircle, CheckCircle, Menu, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from './assets/log.png';
+import aboutImage from './assets/image.png';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const WHATSAPP_NUMBER = '919059757657'; // Updated to your new number
@@ -330,7 +331,7 @@ function App() {
                         <div className="relative group p-4 md:p-8">
                             <div className="absolute inset-0 bg-white/5 rounded-[40px] md:rounded-[80px] rotate-3 scale-95 group-hover:rotate-0 transition-transform duration-700 blur-sm" />
                             <img
-                                src="https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&q=80&w=1200"
+                                src={aboutImage}
                                 className="relative w-full aspect-square object-cover shadow-2xl rounded-[30px] md:rounded-[60px] ring-8 ring-white/5"
                                 alt="Authentic South Indian Breakfast"
                             />
