@@ -45,7 +45,15 @@ function App() {
     const fetchOrders = async () => {
         try {
             const res = await axios.get(`${API_URL}/orders`);
-            setOrders(res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            const fetchedOrders = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            // Check for new orders to play sound
+            if (orders.length > 0 && fetchedOrders.length > orders.length) {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play().catch(e => console.log("Audio blocked by browser, click anywhere to enable."));
+            }
+
+            setOrders(fetchedOrders);
             setLoading(false);
         } catch (err) {
             console.error('Error fetching orders:', err);

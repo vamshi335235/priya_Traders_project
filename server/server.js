@@ -31,7 +31,7 @@ async function seedInitialProducts() {
                 {
                     name: 'Premium Idly Batter',
                     description: 'Stone-ground, naturally fermented, home-style batter for soft and fluffy idlis.',
-                    price: 60,
+                    price: 70,
                     image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&q=80&w=800',
                     category: 'Batter',
                     maker: 'Priya Traders - Home Made'
@@ -47,6 +47,11 @@ async function seedInitialProducts() {
             ];
             await Product.insertMany(initialProducts);
             console.log('✅ Initial products seeded');
+        } else {
+            // Force Sync Prices to 70 for existing items
+            await Product.updateMany({ name: 'Premium Idly Batter' }, { $set: { price: 70 } });
+            await Product.updateMany({ name: 'Crispy Dosa Batter' }, { $set: { price: 70 } });
+            console.log('✅ Product prices synced to ₹70');
         }
     } catch (err) {
         console.error('❌ Error seeding products:', err);
@@ -88,6 +93,16 @@ app.patch('/api/orders/:id', async (req, res) => {
         res.json(updatedOrder);
     } catch (err) {
         res.status(400).json({ message: err.message });
+    }
+});
+
+app.get('/api/orders/check/:phone', async (req, res) => {
+    try {
+        const phone = req.params.phone;
+        const count = await Order.countDocuments({ customerPhone: phone });
+        res.json({ hasPreviousOrders: count > 0 });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 

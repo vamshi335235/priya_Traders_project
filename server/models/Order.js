@@ -10,7 +10,11 @@ const orderSchema = new mongoose.Schema({
         quantity: { type: Number, required: true },
         price: { type: Number, required: true }
     }],
+    subtotal: { type: Number, required: true },
+    deliveryFee: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
+    paymentMethod: { type: String, default: 'online' },
+    paymentStatus: { type: String, default: 'Pending' },
     status: { type: String, default: 'Pending' },
     createdAt: { type: Date, default: Date.now }
 });
