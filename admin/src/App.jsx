@@ -16,9 +16,13 @@ import {
     MessageSquare,
     Truck,
     Box,
-    ClipboardList
+    ClipboardList,
+    Download,
+    ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -35,6 +39,7 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
 
     useEffect(() => {
         fetchOrders();
@@ -100,6 +105,69 @@ function App() {
         }
     };
 
+    const downloadReport = (period) => {
+        const now = new Date();
+        let filtered = [];
+
+        if (period === 'Daily') {
+            const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+            filtered = orders.filter(o => new Date(o.createdAt) >= startOfDay);
+        } else if (period === 'Weekly') {
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            filtered = orders.filter(o => new Date(o.createdAt) >= lastWeek);
+        } else if (period === 'Monthly') {
+            const lastMonth = new Date(now.setMonth(now.getMonth() - 1));
+            filtered = orders.filter(o => new Date(o.createdAt) >= lastMonth);
+        } else {
+            filtered = orders;
+        }
+
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFillColor(45, 90, 39);
+        doc.rect(0, 0, 210, 45, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PRIYA TRADERS', 105, 20, null, null, 'center');
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${period} Sales Report`, 105, 30, null, null, 'center');
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 38, null, null, 'center');
+
+        // Summary
+        const totalRevenue = filtered.reduce((sum, o) => sum + o.totalAmount, 0);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(14, 55, 182, 25, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(11);
+        doc.text(`Total Orders: ${filtered.length}`, 20, 65);
+        doc.text(`Total Revenue: Rs.${totalRevenue}`, 20, 73);
+
+        // Table
+        const tableData = filtered.map(o => [
+            new Date(o.createdAt).toLocaleDateString(),
+            o.customerName,
+            o.customerPhone,
+            o.paymentMethod === 'online' ? 'Online' : 'COD',
+            `Rs.${o.totalAmount}`,
+            o.status || 'Pending'
+        ]);
+
+        autoTable(doc, {
+            head: [['Date', 'Customer', 'Phone', 'Payment', 'Amount', 'Status']],
+            body: tableData,
+            startY: 90,
+            theme: 'grid',
+            headStyles: { fillColor: [45, 90, 39], fontStyle: 'bold' },
+            styles: { fontSize: 9 }
+        });
+
+        doc.save(`PriyaTraders_${period}_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+    };
+
     const filteredOrders = orders.filter(order => {
         const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
         const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,8 +175,16 @@ function App() {
         return matchesStatus && matchesSearch;
     });
 
+    // Filter today's orders
+    const getTodayOrders = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return orders.filter(o => new Date(o.createdAt) >= today);
+    };
+
     const stats = {
         total: orders.length,
+        today: getTodayOrders().length,
         pending: orders.filter(o => o.status === 'Pending').length,
         processing: orders.filter(o => ['Received', 'Packed', 'On The Way'].includes(o.status)).length,
         revenue: orders.reduce((sum, o) => sum + o.totalAmount, 0)
@@ -151,16 +227,39 @@ function App() {
                         <h2 className="text-3xl font-black text-slate-900 mb-1">Incoming Orders</h2>
                         <p className="text-slate-400 font-medium text-sm italic">Track and update orders to notify customers.</p>
                     </div>
-                    <button onClick={fetchOrders} className="flex items-center gap-2 bg-white px-6 py-3 rounded-2xl font-bold text-sm border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 shadow-sm active:scale-95">
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Check for Orders
-                    </button>
+                    <div className="flex gap-3">
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsReportMenuOpen(!isReportMenuOpen)}
+                                className="flex items-center gap-2 bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-sm active:scale-95"
+                            >
+                                <Download size={18} /> Download Report <ChevronDown size={16} className={`transition-transform ${isReportMenuOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {isReportMenuOpen && (
+                                <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 min-w-[200px]">
+                                    {['Daily', 'Weekly', 'Monthly', 'All Time'].map(period => (
+                                        <button
+                                            key={period}
+                                            onClick={() => { downloadReport(period); setIsReportMenuOpen(false); }}
+                                            className="w-full px-6 py-3 text-left font-bold text-sm text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                                        >
+                                            <Download size={14} /> {period} Report
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={fetchOrders} className="flex items-center gap-2 bg-white px-6 py-3 rounded-2xl font-bold text-sm border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 shadow-sm active:scale-95">
+                            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                     {[
                         { label: 'Total Orders', value: stats.total, icon: <ShoppingBag className="text-blue-500" />, bg: 'bg-blue-50' },
-                        { label: 'New Requests', value: stats.pending, icon: <Clock className="text-amber-500" />, bg: 'bg-amber-50' },
+                        { label: "Today's Orders", value: stats.today, icon: <Clock className="text-amber-500" />, bg: 'bg-amber-50' },
                         { label: 'In-Progress', value: stats.processing, icon: <Box className="text-indigo-500" />, bg: 'bg-indigo-50' },
                         { label: 'Total Sales', value: `₹${stats.revenue}`, icon: <CheckCircle className="text-emerald-500" />, bg: 'bg-emerald-50' },
                     ].map((stat, i) => (

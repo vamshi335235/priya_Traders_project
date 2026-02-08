@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logo from './assets/log.png';
 import aboutImage from './assets/image.png';
+import AdminDashboard from './AdminDashboard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const WHATSAPP_NUMBER = '916301145113'; // Updated to your new number
@@ -48,6 +49,15 @@ function App() {
     const [isOrderSuccess, setIsOrderSuccess] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isFaqOpen, setIsFaqOpen] = useState(false);
+    const [isAdminOpen, setIsAdminOpen] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true') {
+            const pin = prompt("Enter Admin PIN:");
+            if (pin === "1234") setIsAdminOpen(true);
+        }
+    }, []);
     const [lastPlacedOrder, setLastPlacedOrder] = useState(null);
     const [localQuantities, setLocalQuantities] = useState({ 'fallback-1': 0, 'fallback-2': 0 });
     const [currentHeroIdx, setCurrentHeroIdx] = useState(0);
