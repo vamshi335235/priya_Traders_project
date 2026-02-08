@@ -9,7 +9,8 @@ import aboutImage from './assets/image.png';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const WHATSAPP_NUMBER = '916301145113'; // Updated to your new number
-const UPI_ID = '6301145113@ybl'; // Your UPI ID for payments
+const UPI_ID = '6301145113-f4f3@ybl'; // Your UPI ID for payments
+const WHATSAPP_MESSAGE = "Hello Priya Traders! I am interested in your products.";
 const BUSINESS_NAME = 'PRIYA TRADERS';
 const DELIVERY_CHARGE = 20;
 const FREE_DELIVERY_THRESHOLD = 210;
@@ -60,6 +61,7 @@ function App() {
     });
     const [paymentMethod, setPaymentMethod] = useState(null); // 'online' or 'cod'
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentRef, setPaymentRef] = useState(''); // Transaction ID
 
     // Check for previous orders when phone number changes
     useEffect(() => {
@@ -213,7 +215,12 @@ function App() {
 
     const finalizeOrder = (order) => {
         const itemsList = cart.map(item => `• ${item.name} x${item.quantity} (₹${item.price * item.quantity})`).join('%0A');
-        const wsMessage = `🍱 *NEW ORDER PLACED!*%0A%0A*Customer:* ${customerInfo.name}%0A*Phone:* ${customerInfo.phone}%0A*Address:* ${customerInfo.address}%0A%0A*Payment:* ${order.paymentMethod === 'online' ? 'Online UPI (User Confirmed)' : 'Cash on Delivery (COD)'}%0A%0A*Breakdown:*%0A- Subtotal: ₹${cartSubtotal}%0A- Delivery: ₹${deliveryFee}%0A- *Total Pay:* ₹${cartTotal}%0A%0A*Items:*%0A${itemsList}%0A%0A---%0A_Sent from Priya Traders Website_`;
+
+        const paymentDetails = order.paymentMethod === 'online'
+            ? `Online UPI (Ref: ${paymentRef})%0A*Status:* Verification Pending`
+            : 'Cash on Delivery (COD)';
+
+        const wsMessage = `🍱 *NEW ORDER PLACED!*%0A%0A*Customer:* ${customerInfo.name}%0A*Phone:* ${customerInfo.phone}%0A*Address:* ${customerInfo.address}%0A%0A*Payment:* ${paymentDetails}%0A%0A*Breakdown:*%0A- Subtotal: ₹${cartSubtotal}%0A- Delivery: ₹${deliveryFee}%0A- *Total Pay:* ₹${cartTotal}%0A%0A*Items:*%0A${itemsList}%0A%0A---%0A_Sent from Priya Traders Website_`;
 
         setCart([]);
         setCustomerInfo({ name: '', phone: '', address: '' });
@@ -221,6 +228,7 @@ function App() {
         setIsPaymentModalOpen(false);
         setIsOrderSuccess(true);
         setPaymentMethod(null); // Reset selection
+        setPaymentRef(''); // Reset transaction ID
 
         // Delayed WhatsApp
         setTimeout(() => {
@@ -542,7 +550,7 @@ function App() {
 
                 {/* WhatsApp Button */}
                 <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-[#25D366] text-white p-3.5 md:p-5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-2 md:gap-3 font-black"
@@ -595,8 +603,10 @@ function App() {
                                     <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                                         <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">Still have a question?</p>
                                         <a
-                                            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                                            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
                                             className="text-[#2d5a27] font-black underline hover:no-underline"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                         >
                                             Message us on WhatsApp
                                         </a>
@@ -772,19 +782,29 @@ function App() {
                                 </div>
 
                                 <a
-                                    href={`upi://pay?pa=${UPI_ID}&pn=Priya%20Traders&am=${lastPlacedOrder?.totalAmount}&cu=INR&tn=Order%20at%20Priya%20Traders`}
+                                    href={`upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(BUSINESS_NAME)}&am=${lastPlacedOrder?.totalAmount}&cu=INR&tn=${encodeURIComponent('Order Payment')}`}
                                     className="block w-full bg-[#f39200] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:scale-[0.98] transition-all flex justify-center items-center gap-2"
                                 >
                                     <Phone size={18} /> Tap to Pay via UPI
                                 </a>
 
                                 <div className="space-y-4 pt-4 border-t border-gray-100">
-                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">After completing payment:</p>
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest text-left">Enter UPI Ref ID / Transaction No:</p>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. 403212345678"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 font-bold text-sm focus:ring-2 focus:ring-[#f39200] outline-none text-center tracking-widest"
+                                        value={paymentRef}
+                                        onChange={(e) => setPaymentRef(e.target.value)}
+                                        maxLength={20}
+                                    />
+
                                     <button
                                         onClick={() => finalizeOrder(lastPlacedOrder)}
-                                        className="w-full bg-[#2d5a27] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:scale-[0.98] transition-all flex justify-center items-center gap-2 animate-pulse"
+                                        disabled={paymentRef.length < 8}
+                                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg transition-all flex justify-center items-center gap-2 ${paymentRef.length >= 8 ? 'bg-[#2d5a27] text-white hover:scale-[0.98] animate-pulse' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                                     >
-                                        <CheckCircle size={18} /> I Have Paid
+                                        <CheckCircle size={18} /> Confirm Payment
                                     </button>
                                 </div>
                             </div>
