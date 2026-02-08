@@ -58,7 +58,8 @@ function App() {
         phone: '',
         address: ''
     });
-    const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' or 'cod'
+    const [paymentMethod, setPaymentMethod] = useState(null); // 'online' or 'cod'
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     // Check for previous orders when phone number changes
     useEffect(() => {
@@ -177,8 +178,11 @@ function App() {
             alert("Please fill in all your details so we can deliver your order!");
             return;
         }
+        if (!paymentMethod) {
+            alert("Please select a payment method first.");
+            return;
+        }
 
-        const totalToPay = cartTotal;
         const orderData = {
             customerName: customerInfo.name,
             customerPhone: customerInfo.phone.startsWith('91') ? customerInfo.phone : `91${customerInfo.phone.replace(/\D/g, '')}`,
@@ -195,31 +199,35 @@ function App() {
             const response = await axios.post(`${API_URL}/orders`, orderData);
             const savedOrder = response.data;
             setLastPlacedOrder(savedOrder);
-            const itemsList = cart.map(item => `• ${item.name} x${item.quantity} (₹${item.price * item.quantity})`).join('%0A');
-            const wsMessage = `🍱 *NEW ORDER PLACED!*%0A%0A*Customer:* ${customerInfo.name}%0A*Phone:* ${customerInfo.phone}%0A*Address:* ${customerInfo.address}%0A%0A*Payment:* ${paymentMethod === 'online' ? 'Online UPI' : 'Cash on Delivery (COD)'}%0A%0A*Breakdown:*%0A- Subtotal: ₹${cartSubtotal}%0A- Delivery: ₹${deliveryFee}%0A- *Total Pay:* ₹${cartTotal}%0A%0A*Items:*%0A${itemsList}%0A%0A---%0A_Sent from Priya Traders Website_`;
 
-            setCart([]);
-            setCustomerInfo({ name: '', phone: '', address: '' });
-            setIsCartOpen(false);
-            setIsOrderSuccess(true);
-
-            // 3. TRIGGER EASY UPI PAYMENT (Only if Online is selected)
             if (paymentMethod === 'online') {
-                const upiUrl = `upi://pay?pa=${UPI_ID}&pn=Priya%20Traders&am=${totalToPay}&cu=INR&tn=Order%20at%20Priya%20Traders`;
-                console.log("Triggering UPI UI:", upiUrl);
-                // Try automatic redirection
-                window.location.href = upiUrl;
+                setIsCartOpen(false);
+                setIsPaymentModalOpen(true); // Open Payment Modal
+            } else {
+                finalizeOrder(savedOrder); // COD Logic
             }
-
-            // 4. Delayed WhatsApp
-            setTimeout(() => {
-                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${wsMessage}`, '_blank');
-            }, 5000);
-
-            setTimeout(() => setIsOrderSuccess(false), 20000);
         } catch (err) {
             alert("Error: " + (err.response?.data?.message || "Could not connect to the server."));
         }
+    };
+
+    const finalizeOrder = (order) => {
+        const itemsList = cart.map(item => `• ${item.name} x${item.quantity} (₹${item.price * item.quantity})`).join('%0A');
+        const wsMessage = `🍱 *NEW ORDER PLACED!*%0A%0A*Customer:* ${customerInfo.name}%0A*Phone:* ${customerInfo.phone}%0A*Address:* ${customerInfo.address}%0A%0A*Payment:* ${order.paymentMethod === 'online' ? 'Online UPI (User Confirmed)' : 'Cash on Delivery (COD)'}%0A%0A*Breakdown:*%0A- Subtotal: ₹${cartSubtotal}%0A- Delivery: ₹${deliveryFee}%0A- *Total Pay:* ₹${cartTotal}%0A%0A*Items:*%0A${itemsList}%0A%0A---%0A_Sent from Priya Traders Website_`;
+
+        setCart([]);
+        setCustomerInfo({ name: '', phone: '', address: '' });
+        setIsCartOpen(false);
+        setIsPaymentModalOpen(false);
+        setIsOrderSuccess(true);
+        setPaymentMethod(null); // Reset selection
+
+        // Delayed WhatsApp
+        setTimeout(() => {
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${wsMessage}`, '_blank');
+        }, 2000);
+
+        setTimeout(() => setIsOrderSuccess(false), 20000);
     };
 
     return (
@@ -437,9 +445,8 @@ function App() {
                             <p>We've built a smart network to ensure you get this high-quality, fresh batter delivered directly to your doorstep every single day.</p>
                         </div>
                         <div className="mt-8 md:mt-12 flex flex-wrap justify-center lg:justify-start gap-6 md:gap-10">
+
                             <div><p className="text-2xl md:text-4xl font-black text-[#f39200]">100%</p><p className="text-[8px] md:text-xs font-bold uppercase tracking-widest opacity-50">Pure Batter</p></div>
-                            <div><p className="text-2xl md:text-4xl font-black text-[#f39200]">0%</p><p className="text-[8px] md:text-xs font-bold uppercase tracking-widest opacity-50">Preservatives</p></div>
-                            <div><p className="text-2xl md:text-4xl font-black text-[#f39200]">Daily</p><p className="text-[8px] md:text-xs font-bold uppercase tracking-widest opacity-50">Fresh Batch</p></div>
                         </div>
                     </div>
                     <motion.div
@@ -731,12 +738,58 @@ function App() {
                                         </div>
                                     </div>
 
-                                    <button onClick={handlePlaceOrder} className="w-full bg-[#2d5a27] text-white py-4 md:py-6 rounded-xl md:rounded-[24px] font-black text-[10px] md:text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-[0.98] transition-transform">PLACE ORDER</button>
+                                    <button
+                                        onClick={handlePlaceOrder}
+                                        disabled={!paymentMethod}
+                                        className={`w-full py-4 md:py-6 rounded-xl md:rounded-[24px] font-black text-[10px] md:text-xs uppercase tracking-[0.2em] shadow-xl transition-all ${!paymentMethod ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#2d5a27] text-white hover:scale-[0.98]'}`}
+                                    >
+                                        {!paymentMethod ? 'Select Payment Method' : (paymentMethod === 'cod' ? 'Place Order (COD)' : 'Proceed to Payment')}
+                                    </button>
                                     <p className="text-[7px] md:text-[9px] text-center text-gray-300 font-bold uppercase tracking-widest mt-6 md:mt-8 italic">Payment is calculated as ₹75 per packet + Delivery.</p>
                                 </div>
                             )}
                         </motion.div>
                     </>
+                )}
+            </AnimatePresence>
+
+            {/* Payment Modal (Online) */}
+            <AnimatePresence>
+                {isPaymentModalOpen && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white w-full max-w-sm md:max-w-md rounded-[30px] shadow-2xl overflow-hidden flex flex-col relative text-center">
+                            <button onClick={() => setIsPaymentModalOpen(false)} className="absolute top-4 right-4 bg-black/5 p-2 rounded-full hover:bg-black/10 transition-colors"><X size={20} /></button>
+
+                            <div className="p-8 bg-[#2d5a27] text-white">
+                                <h3 className="text-2xl font-black italic font-serif">Complete Payment</h3>
+                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mt-2">Scan or Tap to Pay</p>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div>
+                                    <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Total Amount</p>
+                                    <p className="text-4xl font-black text-gray-900">₹{lastPlacedOrder?.totalAmount}</p>
+                                </div>
+
+                                <a
+                                    href={`upi://pay?pa=${UPI_ID}&pn=Priya%20Traders&am=${lastPlacedOrder?.totalAmount}&cu=INR&tn=Order%20at%20Priya%20Traders`}
+                                    className="block w-full bg-[#f39200] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:scale-[0.98] transition-all flex justify-center items-center gap-2"
+                                >
+                                    <Phone size={18} /> Tap to Pay via UPI
+                                </a>
+
+                                <div className="space-y-4 pt-4 border-t border-gray-100">
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">After completing payment:</p>
+                                    <button
+                                        onClick={() => finalizeOrder(lastPlacedOrder)}
+                                        className="w-full bg-[#2d5a27] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:scale-[0.98] transition-all flex justify-center items-center gap-2 animate-pulse"
+                                    >
+                                        <CheckCircle size={18} /> I Have Paid
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>
